@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#78d8ff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="じゅんばん">
+  <title>じゅんばん ならべ</title>
+  <style>
+    :root {
+      --sky: #78d8ff;
+      --sky-deep: #45a9df;
+      --ink: #21385f;
+      --white: #fffef8;
+      --sun: #ffe56a;
+      --pink: #ff78a7;
+      --green: #73d58b;
+      --orange: #ffb451;
+      --blue: #6caeff;
+      --shadow: rgba(18, 58, 104, .2);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+    }
+
+    body {
+      overflow: hidden;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 14% 16%, rgba(255, 255, 255, .55) 0 14px, transparent 15px),
+        radial-gradient(circle at 84% 15%, rgba(255, 229, 106, .95) 0 34px, transparent 35px),
+        linear-gradient(180deg, #91e1ff 0%, var(--sky) 48%, #d8f8d5 100%);
+      font-family: "Hiragino Maru Gothic ProN", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+      touch-action: manipulation;
+      user-select: none;
+    }
+
+    button,
+    select {
+      font: inherit;
+      border: 0;
+    }
+
+    .app {
+      position: relative;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 10px;
+      width: 100vw;
+      height: 100dvh;
+      min-height: 0;
+      padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+    }
+
+    .app::before {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background-image:
+        repeating-linear-gradient(-12deg, transparent 0 72px, rgba(255, 255, 255, .28) 73px 84px, transparent 85px 150px),
+        repeating-linear-gradient(18deg, transparent 0 94px, rgba(255, 229, 106, .38) 95px 105px, transparent 106px 186px);
+      content: "";
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 62px;
+    }
+
+    .icon-button,
+    .next-button,
+    .level-select {
+      border: 5px solid var(--ink);
+      border-radius: 10px;
+      color: var(--ink);
+      background: var(--sun);
+      box-shadow: 0 7px 0 var(--shadow);
+      font-weight: 900;
+    }
+
+    .icon-button {
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      font-size: 28px;
+      cursor: pointer;
+    }
+
+    .brand {
+      justify-self: center;
+      text-align: center;
+      color: var(--white);
+      text-shadow: 0 5px 0 rgba(31, 56, 95, .25);
+      line-height: .95;
+      font-weight: 1000;
+    }
+
+    .brand span {
+      display: block;
+      font-size: clamp(18px, 3vw, 28px);
+    }
+
+    .brand strong {
+      display: block;
+      font-size: clamp(30px, 5vw, 54px);
+    }
+
+    .level-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      border: 5px solid var(--ink);
+      border-radius: 10px;
+      background: var(--white);
+      box-shadow: 0 7px 0 var(--shadow);
+      font-size: clamp(14px, 2.5vw, 18px);
+      font-weight: 900;
+    }
+
+    .level-select {
+      padding: 6px 8px;
+      border-width: 3px;
+      box-shadow: none;
+      cursor: pointer;
+    }
+
+    .prompt {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      min-height: 46px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      color: var(--ink);
+      background: rgba(255, 254, 248, .84);
+      box-shadow: 0 6px 0 rgba(31, 56, 95, .12);
+      text-align: center;
+      font-size: clamp(20px, 4vw, 36px);
+      font-weight: 1000;
+    }
+
+    .target-number {
+      display: inline-grid;
+      place-items: center;
+      min-width: 54px;
+      min-height: 54px;
+      padding: 0 10px;
+      border: 4px solid var(--ink);
+      border-radius: 14px;
+      color: #fff;
+      background: var(--pink);
+      box-shadow: 0 5px 0 rgba(31, 56, 95, .18);
+      font-size: clamp(30px, 6vw, 48px);
+      line-height: 1;
+    }
+
+    .play-area {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+      border: 5px solid rgba(31, 56, 95, .22);
+      border-radius: 18px;
+      background: rgba(255, 254, 248, .55);
+      box-shadow: inset 0 0 0 4px rgba(255, 255, 255, .48);
+    }
+
+    .number-card {
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      width: var(--card-size);
+      height: var(--card-size);
+      display: grid;
+      place-items: center;
+      border: 5px solid var(--ink);
+      border-radius: 16px;
+      color: var(--ink);
+      background: var(--card-color);
+      box-shadow: 0 8px 0 var(--shadow);
+      font-size: clamp(32px, 8vw, 72px);
+      font-weight: 1000;
+      line-height: 1;
+      cursor: pointer;
+      transform: translate(0, 0) scale(1);
+      animation:
+        drift-x var(--duration-x) ease-in-out infinite alternate,
+        drift-y var(--duration-y) ease-in-out infinite alternate;
+      animation-delay: var(--delay-x), var(--delay-y);
+      transition: opacity .24s ease, transform .18s ease, filter .18s ease;
+    }
+
+    .number-card.done {
+      opacity: 0;
+      pointer-events: none;
+      filter: saturate(.5);
+      transform: scale(.75);
+    }
+
+    .number-card.correct {
+      color: #fff;
+      background: var(--green);
+      animation:
+        drift-x var(--duration-x) ease-in-out infinite alternate,
+        drift-y var(--duration-y) ease-in-out infinite alternate,
+        pop .38s ease both;
+    }
+
+    .number-card.wrong {
+      animation:
+        drift-x var(--duration-x) ease-in-out infinite alternate,
+        drift-y var(--duration-y) ease-in-out infinite alternate,
+        shake .26s ease both;
+    }
+
+    .number-card:active {
+      box-shadow: 0 3px 0 var(--shadow);
+    }
+
+    .done-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 54px;
+      padding: 8px;
+      overflow-x: auto;
+      border: 5px solid rgba(31, 56, 95, .18);
+      border-radius: 16px;
+      background: rgba(255, 254, 248, .76);
+      box-shadow: 0 6px 0 rgba(31, 56, 95, .12);
+    }
+
+    .done-chip {
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      min-width: 42px;
+      height: 42px;
+      padding: 0 10px;
+      border: 3px solid var(--ink);
+      border-radius: 12px;
+      color: #fff;
+      background: var(--green);
+      font-size: 26px;
+      font-weight: 1000;
+      box-shadow: 0 4px 0 rgba(31, 56, 95, .16);
+    }
+
+    .celebration {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: none;
+      place-items: center;
+      padding: 18px;
+      background: rgba(120, 216, 255, .22);
+      backdrop-filter: blur(3px);
+    }
+
+    .celebration.show {
+      display: grid;
+    }
+
+    .celebration-panel {
+      width: min(680px, 94vw);
+      padding: clamp(18px, 5vw, 38px);
+      border: 7px solid var(--ink);
+      border-radius: 24px;
+      background: var(--white);
+      box-shadow: 0 14px 0 rgba(31, 56, 95, .28);
+      text-align: center;
+      animation: panel-in .42s ease both;
+    }
+
+    .celebration h2 {
+      margin: 0 0 8px;
+      color: var(--pink);
+      font-size: clamp(56px, 14vw, 124px);
+      line-height: .88;
+      text-shadow: 0 6px 0 rgba(255, 120, 167, .18);
+    }
+
+    .celebration p {
+      margin: 0 0 20px;
+      font-size: clamp(22px, 5vw, 42px);
+      font-weight: 1000;
+    }
+
+    .next-button {
+      padding: 14px 24px;
+      background: var(--sun);
+      font-size: clamp(20px, 4vw, 32px);
+      cursor: pointer;
+    }
+
+    .sparkles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .sparkles span {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      background: var(--spark-color);
+      animation: burst 1.4s ease-out both;
+      transform: translate(-50%, -50%);
+    }
+
+    @keyframes drift-x {
+      from { margin-left: calc(var(--move-x) * -1); }
+      to { margin-left: var(--move-x); }
+    }
+
+    @keyframes drift-y {
+      from { margin-top: calc(var(--move-y) * -1); }
+      to { margin-top: var(--move-y); }
+    }
+
+    @keyframes pop {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.18); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      75% { transform: translateX(8px); }
+    }
+
+    @keyframes panel-in {
+      0% { opacity: 0; transform: translateY(18px) scale(.88); }
+      75% { transform: translateY(-4px) scale(1.03); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes burst {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(.4);
+      }
+      12% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(1.2);
+      }
+    }
+
+    @media (max-width: 680px) {
+      .app {
+        gap: 8px;
+        padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+      }
+
+      .topbar {
+        grid-template-columns: 52px minmax(0, 1fr) auto;
+      }
+
+      .icon-button {
+        width: 50px;
+        height: 50px;
+        border-width: 4px;
+      }
+
+      .level-pill {
+        gap: 4px;
+        padding: 4px;
+        border-width: 4px;
+      }
+
+      .level-pill span {
+        display: none;
+      }
+
+      .level-select {
+        max-width: 82px;
+      }
+
+      .prompt {
+        min-height: 42px;
+        font-size: 20px;
+      }
+
+      .target-number {
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <button class="icon-button" id="resetButton" type="button" aria-label="やりなおし">↺</button>
+      <div class="brand" aria-label="じゅんばん ならべ">
+        <span>じゅんばん</span>
+        <strong>ならべ</strong>
+      </div>
+      <label class="level-pill">
+        <span>だんかい</span>
+        <select class="level-select" id="levelSelect" aria-label="だんかい"></select>
+      </label>
+    </header>
+
+    <section class="prompt" aria-live="polite">
+      <span>つぎは</span>
+      <strong class="target-number" id="targetNumber">1</strong>
+      <span>をタッチ</span>
+    </section>
+
+    <section class="play-area" id="playArea" aria-label="すうじカード"></section>
+
+    <section class="done-row" id="doneRow" aria-label="できたすうじ"></section>
+
+    <section class="celebration" id="celebration" aria-live="polite">
+      <div class="sparkles" id="sparkles" aria-hidden="true"></div>
+      <div class="celebration-panel">
+        <h2>やったぁ！</h2>
+        <p>じゅんばんに できたね</p>
+        <button class="next-button" id="nextButton" type="button">つぎのもんだい</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const playArea = document.querySelector("#playArea");
+    const doneRow = document.querySelector("#doneRow");
+    const targetNumber = document.querySelector("#targetNumber");
+    const levelSelect = document.querySelector("#levelSelect");
+    const resetButton = document.querySelector("#resetButton");
+    const nextButton = document.querySelector("#nextButton");
+    const celebration = document.querySelector("#celebration");
+    const sparkles = document.querySelector("#sparkles");
+
+    const colors = ["#ffe56a", "#ffb451", "#ff78a7", "#73d58b", "#6caeff", "#c69cff"];
+
+    let level = Number(localStorage.getItem("number-order-level") || "5");
+    let nextExpected = 1;
+    let finished = false;
+
+    function setupLevels() {
+      for (let i = 2; i <= 20; i += 1) {
+        const option = document.createElement("option");
+        option.value = String(i);
+        option.textContent = `${i}まで`;
+        levelSelect.append(option);
+      }
+
+      if (level < 2 || level > 20) level = 5;
+      levelSelect.value = String(level);
+    }
+
+    function randomBetween(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function shuffle(items) {
+      return [...items].sort(() => Math.random() - 0.5);
+    }
+
+    function cardSizeFor(count) {
+      if (count <= 5) return 96;
+      if (count <= 8) return 84;
+      if (count <= 12) return 72;
+      if (count <= 16) return 64;
+      return 56;
+    }
+
+    function newProblem() {
+      finished = false;
+      nextExpected = 1;
+      targetNumber.textContent = "1";
+      playArea.innerHTML = "";
+      doneRow.innerHTML = "";
+      celebration.classList.remove("show");
+
+      const areaRect = playArea.getBoundingClientRect();
+      const count = level;
+      const size = cardSizeFor(count);
+      const safeWidth = Math.max(0, areaRect.width - size - 28);
+      const safeHeight = Math.max(0, areaRect.height - size - 28);
+      const numbers = shuffle(Array.from({ length: count }, (_, index) => index + 1));
+
+      numbers.forEach((number, index) => {
+        const button = document.createElement("button");
+        button.className = "number-card";
+        button.type = "button";
+        button.textContent = number;
+        button.setAttribute("aria-label", `${number}`);
+        button.dataset.number = String(number);
+
+        button.style.setProperty("--card-size", `${size}px`);
+        button.style.setProperty("--x", `${14 + randomBetween(0, safeWidth)}px`);
+        button.style.setProperty("--y", `${14 + randomBetween(0, safeHeight)}px`);
+        button.style.setProperty("--move-x", `${randomBetween(4, 18)}px`);
+        button.style.setProperty("--move-y", `${randomBetween(4, 18)}px`);
+        button.style.setProperty("--duration-x", `${randomBetween(2.4, 5.4)}s`);
+        button.style.setProperty("--duration-y", `${randomBetween(2.8, 5.8)}s`);
+        button.style.setProperty("--delay-x", `${randomBetween(-4, 0)}s`);
+        button.style.setProperty("--delay-y", `${randomBetween(-4, 0)}s`);
+        button.style.setProperty("--card-color", colors[index % colors.length]);
+
+        button.addEventListener("click", () => chooseNumber(button, number));
+        playArea.append(button);
+      });
+    }
+
+    function chooseNumber(button, number) {
+      if (finished || button.classList.contains("done")) return;
+
+      if (number !== nextExpected) {
+        button.classList.remove("wrong");
+        void button.offsetWidth;
+        button.classList.add("wrong");
+        setTimeout(() => button.classList.remove("wrong"), 320);
+        return;
+      }
+
+      button.classList.add("correct");
+      addDoneChip(number);
+
+      setTimeout(() => {
+        button.classList.add("done");
+      }, 210);
+
+      if (number === level) {
+        finished = true;
+        setTimeout(showCelebration, 360);
+        return;
+      }
+
+      nextExpected += 1;
+      targetNumber.textContent = String(nextExpected);
+    }
+
+    function addDoneChip(number) {
+      const chip = document.createElement("span");
+      chip.className = "done-chip";
+      chip.textContent = number;
+      doneRow.append(chip);
+      doneRow.scrollLeft = doneRow.scrollWidth;
+    }
+
+    function showCelebration() {
+      targetNumber.textContent = "✓";
+      makeSparkles();
+      celebration.classList.add("show");
+    }
+
+    function makeSparkles() {
+      sparkles.innerHTML = "";
+      const sparkleColors = ["#ffe56a", "#ff78a7", "#73d58b", "#6caeff", "#ffb451", "#ffffff"];
+
+      for (let i = 0; i < 90; i += 1) {
+        const piece = document.createElement("span");
+        const angle = (Math.PI * 2 * i) / 90;
+        const radius = randomBetween(110, 430);
+        piece.style.setProperty("--sx", `${Math.cos(angle) * radius}px`);
+        piece.style.setProperty("--sy", `${Math.sin(angle) * radius}px`);
+        piece.style.setProperty("--spark-color", sparkleColors[i % sparkleColors.length]);
+        piece.style.left = `${randomBetween(35, 65)}%`;
+        piece.style.top = `${randomBetween(35, 62)}%`;
+        piece.style.animationDelay = `${randomBetween(0, 180)}ms`;
+        sparkles.append(piece);
+      }
+    }
+
+    levelSelect.addEventListener("change", () => {
+      level = Number(levelSelect.value);
+      localStorage.setItem("number-order-level", String(level));
+      newProblem();
+    });
+
+    resetButton.addEventListener("click", newProblem);
+    nextButton.addEventListener("click", newProblem);
+    window.addEventListener("resize", () => {
+      if (!finished) newProblem();
+    });
+
+    setupLevels();
+    requestAnimationFrame(newProblem);
+  </script>
+</body>
+</html>
