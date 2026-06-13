@@ -489,6 +489,31 @@
       return 56;
     }
 
+    function pickCardPosition(placed, size, safeWidth, safeHeight) {
+      const minDistance = size * 0.86;
+
+      for (let attempt = 0; attempt < 90; attempt += 1) {
+        const x = 14 + randomBetween(0, safeWidth);
+        const y = 14 + randomBetween(0, safeHeight);
+        const farEnough = placed.every((spot) => {
+          return Math.hypot(spot.x - x, spot.y - y) >= minDistance;
+        });
+
+        if (farEnough) {
+          const spot = { x, y };
+          placed.push(spot);
+          return spot;
+        }
+      }
+
+      const fallback = {
+        x: 14 + randomBetween(0, safeWidth),
+        y: 14 + randomBetween(0, safeHeight)
+      };
+      placed.push(fallback);
+      return fallback;
+    }
+
     function newProblem() {
       finished = false;
       nextExpected = 1;
@@ -503,8 +528,10 @@
       const safeWidth = Math.max(0, areaRect.width - size - 28);
       const safeHeight = Math.max(0, areaRect.height - size - 28);
       const numbers = shuffle(Array.from({ length: count }, (_, index) => index + 1));
+      const placed = [];
 
       numbers.forEach((number, index) => {
+        const spot = pickCardPosition(placed, size, safeWidth, safeHeight);
         const button = document.createElement("button");
         button.className = "number-card";
         button.type = "button";
@@ -513,8 +540,8 @@
         button.dataset.number = String(number);
 
         button.style.setProperty("--card-size", `${size}px`);
-        button.style.setProperty("--x", `${14 + randomBetween(0, safeWidth)}px`);
-        button.style.setProperty("--y", `${14 + randomBetween(0, safeHeight)}px`);
+        button.style.setProperty("--x", `${spot.x}px`);
+        button.style.setProperty("--y", `${spot.y}px`);
         button.style.setProperty("--move-x", `${randomBetween(4, 18)}px`);
         button.style.setProperty("--move-y", `${randomBetween(4, 18)}px`);
         button.style.setProperty("--duration-x", `${randomBetween(2.4, 5.4)}s`);
@@ -596,9 +623,6 @@
 
     resetButton.addEventListener("click", newProblem);
     nextButton.addEventListener("click", newProblem);
-    window.addEventListener("resize", () => {
-      if (!finished) newProblem();
-    });
 
     setupLevels();
     requestAnimationFrame(newProblem);
