@@ -550,7 +550,15 @@
         button.style.setProperty("--delay-y", `${randomBetween(-4, 0)}s`);
         button.style.setProperty("--card-color", colors[index % colors.length]);
 
-        button.addEventListener("click", () => chooseNumber(button, number));
+        button.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          chooseNumber(button, number);
+        });
+        button.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          chooseNumber(button, number);
+        });
         playArea.append(button);
       });
     }
